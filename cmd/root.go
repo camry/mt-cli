@@ -68,7 +68,9 @@ var (
 
             ch = make(chan struct{}, 10)
             for _, table := range mtDB.GetTables() {
-                if !strings.HasPrefix(table.TableName, "base_") {
+                c1 := !strings.HasPrefix(table.TableName, "base_")
+                c2 := strings.HasPrefix(table.TableName, "base_json")
+                if c1 || c2 {
                     continue
                 }
                 ch <- struct{}{}
