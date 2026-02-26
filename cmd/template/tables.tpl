@@ -69,7 +69,7 @@ func (x *{{ .TableNameCamelCase }}Manager) List() *{{ .PbPackage }}.{{ .TableNam
 
 func (x *{{ .TableNameCamelCase }}Manager) ForEach(fn func(index int, {{ .TableNameCamelCase }} *{{ .PbPackage }}.{{ .TableNamePascalCase }})) {
     m := x.List()
-    for index, {{ .TableNameCamelCase }} := range m.GetTables() {
+    for index, {{ .TableNameCamelCase }} := range m.GetItems() {
         fn(index, {{ .TableNameCamelCase }})
     }
 }
@@ -81,9 +81,9 @@ func (x *{{ $TableNameCamelCase }}Manager) {{ .FuncName }}({{ .FuncArg }}) ({{ i
     }
     m := x.List()
     {{- if ne .IsUnique true}}
-    {{ $TableNameCamelCase }}List := make([]*{{ $PbPackage }}.{{ $TableNamePascalCase }}, 0, len(m.GetTables()))
+    {{ $TableNameCamelCase }}List := make([]*{{ $PbPackage }}.{{ $TableNamePascalCase }}, 0, len(m.GetItems()))
     {{- end }}
-    for _, {{ $TableNameCamelCase }} := range m.GetTables() {
+    for _, {{ $TableNameCamelCase }} := range m.GetItems() {
         if {{ .ForIf }} {
             {{- if ne .IsUnique true }}
             {{ $TableNameCamelCase }}List = append({{ $TableNameCamelCase }}List, {{ $TableNameCamelCase }})
