@@ -19,7 +19,7 @@ var (
     //go:embed .version
     Version string
     //go:embed template/tables.tpl
-    TemplateTable string
+    TemplateTablesTpl string
 )
 
 func Execute() error {
@@ -61,7 +61,7 @@ var (
             if !ok {
                 glog.Fatal(gerror.Newf("--go-pkg 参数错误（例：github.com/camry/pb/sbpb）。"))
             }
-            tpl, err := template.New("TemplateSchema").Parse(TemplateTable)
+            tpl, err := template.New("TemplateTablesTpl").Parse(TemplateTablesTpl)
             if err != nil {
                 glog.Fatal(gerror.Wrapf(err, "template.New Failed"))
             }
