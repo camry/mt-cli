@@ -11,7 +11,7 @@ import (
     {{ if ne .GoPackage "" }}"{{ .GoPackage }}"{{ end }}
     "google.golang.org/protobuf/proto"
 
-    "github.com/camry/mt"
+    "gitea.meigushi.go/meigushi/mt"
 )
 
 {{- $PbPackage := .PbPackage }}
