@@ -131,7 +131,7 @@ func (x *Table) Generate() error {
         templateTableIndex.ForIf = strings.Join(ifColumns, " && ")
         templateTable.TableIndexList = append(templateTable.TableIndexList, templateTableIndex)
     }
-    templateTable.TableRows = indexTableRows
+    templateTable.TableRows = lo.Max([]int64{indexTableRows, 1})
 
     var wr bytes.Buffer
     err = x.tpl.Execute(&wr, templateTable)
