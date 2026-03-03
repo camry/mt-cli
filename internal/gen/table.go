@@ -45,9 +45,15 @@ func (x *Table) Generate() error {
     }
 
     var (
+        tableRows          int64
         tableColumnList    []*model.Column
         tableStatisticList []*model.Statistic
     )
+
+    if x.modelTable.TableRows.Valid {
+        tableRows = x.modelTable.TableRows.Int64
+    }
+
     err := x.mtDB.GetDB().Table("information_schema.COLUMNS").Order("`ORDINAL_POSITION` ASC").Find(
         &tableColumnList,
         "`TABLE_SCHEMA` = ? AND `TABLE_NAME` = ?", x.mtDB.GetSchema().SchemaName, x.modelTable.TableName,
@@ -77,6 +83,7 @@ func (x *Table) Generate() error {
     tableStatisticGroupIndexNames := lo.Keys(tableStatisticGroup)
     sort.Strings(tableStatisticGroupIndexNames)
     templateTable.TableIndexList = make([]*model.TemplateTableIndex, 0, len(tableStatisticGroup))
+    var indexTableRows int64
     for _, tableStatisticGroupIndexName := range tableStatisticGroupIndexNames {
         indexTableStatisticList := tableStatisticGroup[tableStatisticGroupIndexName]
         templateTableIndex := &model.TemplateTableIndex{
@@ -104,8 +111,10 @@ func (x *Table) Generate() error {
         }
         templateTableIndex.FuncName = strings.Join(pascalCaseColumnNames, "And")
         if isUnique {
+            indexTableRows += tableRows
             templateTableIndex.FuncName = "GetBy" + templateTableIndex.FuncName
         } else {
+            indexTableRows += tableRows/20 + 1
             templateTableIndex.FuncName = "ListBy" + templateTableIndex.FuncName
         }
         templateTableIndex.IsUnique = isUnique
@@ -122,6 +131,7 @@ func (x *Table) Generate() error {
         templateTableIndex.ForIf = strings.Join(ifColumns, " && ")
         templateTable.TableIndexList = append(templateTable.TableIndexList, templateTableIndex)
     }
+    templateTable.TableRows = indexTableRows
 
     var wr bytes.Buffer
     err = x.tpl.Execute(&wr, templateTable)

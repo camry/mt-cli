@@ -19,7 +19,7 @@ import (
 {{- $TableNameCamelCase := .TableNameCamelCase }}
 
 var {{ .TableNamePascalCase }}Manager = &{{ .TableNameCamelCase }}Manager{
-    tableCache: gcache.New(2000).ARC().Build(),
+    tableCache: gcache.New({{ .TableRows }}).ARC().Build(),
 }
 
 func init() {

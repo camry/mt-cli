@@ -6,6 +6,7 @@ type TemplateTable struct {
     TableName           string
     TableNamePascalCase string
     TableNameCamelCase  string
+    TableRows           int64
     TableIndexList      []*TemplateTableIndex
 }
 
