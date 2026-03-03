@@ -67,6 +67,8 @@ func (x *Table) Generate() error {
         return gerror.Newf("Table Generate %s Not Found", x.modelTable.TableName)
     }
     tableColumnMap := lo.SliceToMap(tableColumnList, func(item *model.Column) (string, *model.Column) {
+        item.DataType = strings.ToUpper(item.DataType)
+        item.ColumnType = strings.ToUpper(item.ColumnType)
         return item.ColumnName, item
     })
     tableStatisticGroup := lo.GroupBy(tableStatisticList, func(item *model.Statistic) string {
@@ -93,7 +95,7 @@ func (x *Table) Generate() error {
                 ColumnName:           indexTableStatistic.ColumnName,
                 PascalCaseColumnName: lo.PascalCase(indexTableStatistic.ColumnName),
                 CamelCaseColumnName:  lo.CamelCase(indexTableStatistic.ColumnName),
-                DataType:             x.DataType(strings.ToUpper(tableColumn.DataType)),
+                DataType:             x.DataType(tableColumn),
             }
             templateTableIndex.Columns = append(templateTableIndex.Columns, templateTableColumn)
             pascalCaseColumnNames = append(pascalCaseColumnNames, templateTableColumn.PascalCaseColumnName)
@@ -133,9 +135,12 @@ func (x *Table) Generate() error {
     return nil
 }
 
-func (x *Table) DataType(dataType string) string {
-    switch dataType {
+func (x *Table) DataType(tableColumn *model.Column) string {
+    switch tableColumn.DataType {
     case "TINYINT", "SMALLINT", "MEDIUMINT", "INT", "INTEGER":
+        if tableColumn.ColumnType == "TINYINT(1)" {
+            return "bool"
+        }
         return "int32"
     case "BIGINT":
         return "int64"
