@@ -31,6 +31,7 @@ func init() {
     rootCmd.Flags().StringVarP(&db, "db", "d", "", "指定数据库。")
     rootCmd.Flags().StringVarP(&out, "out", "o", "", "指定输出目录。")
     rootCmd.Flags().StringVarP(&goPkg, "go-pkg", "g", "", "指定 Go 包名。")
+    rootCmd.Flags().StringVarP(&outPkg, "out-pkg", "p", "tables", "指定输出 Go 包名。")
 
     cobra.CheckErr(rootCmd.MarkFlagRequired("server"))
     cobra.CheckErr(rootCmd.MarkFlagRequired("db"))
@@ -43,6 +44,7 @@ var (
     db     string
     out    string
     goPkg  string
+    outPkg string
 
     ch chan struct{}
     wg sync.WaitGroup
@@ -74,7 +76,7 @@ var (
                     continue
                 }
                 ch <- struct{}{}
-                g := gen.NewTable(mtDB, tpl, table, goPkg, pbPkg, out)
+                g := gen.NewTable(mtDB, tpl, table, goPkg, pbPkg, outPkg, out)
                 wg.Go(func() {
                     if err := g.Generate(); err != nil {
                         glog.Fatal(gerror.Wrapf(err, "Generate Failed"))

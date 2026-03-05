@@ -21,16 +21,18 @@ type Table struct {
     modelTable *model.Table
     goPkg      string
     pbPkg      string
+    outPkg     string
     out        string
 }
 
-func NewTable(mtDB *gdb.MtDB, tpl *template.Template, modelTable *model.Table, goPkg, pbPkg, out string) *Table {
+func NewTable(mtDB *gdb.MtDB, tpl *template.Template, modelTable *model.Table, goPkg, pbPkg, outPkg, out string) *Table {
     return &Table{
         mtDB:       mtDB,
         tpl:        tpl,
         modelTable: modelTable,
         goPkg:      goPkg,
         pbPkg:      pbPkg,
+        outPkg:     outPkg,
         out:        out,
     }
 }
@@ -39,6 +41,7 @@ func (x *Table) Generate() error {
     templateTable := &model.TemplateTable{
         GoPackage:           x.goPkg,
         PbPackage:           x.pbPkg,
+        OutPackage:          x.outPkg,
         TableName:           x.modelTable.TableName,
         TableNamePascalCase: lo.PascalCase(x.modelTable.TableName),
         TableNameCamelCase:  lo.CamelCase(x.modelTable.TableName),
