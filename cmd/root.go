@@ -2,6 +2,7 @@ package cmd
 
 import (
     _ "embed"
+    "os"
     "strings"
     "sync"
     "text/template"
@@ -10,6 +11,7 @@ import (
     "github.com/camry/g/v2/glog"
     "github.com/samber/lo"
     "github.com/spf13/cobra"
+    "gopkg.in/yaml.v3"
 
     "mt-cli/internal/gdb"
     "mt-cli/internal/gen"
@@ -29,6 +31,7 @@ func Execute() error {
 func init() {
     rootCmd.Flags().StringVarP(&server, "server", "s", "", "指定服务器。(格式: <user>:<password>@<host>:<port>)")
     rootCmd.Flags().StringVarP(&db, "db", "d", "", "指定数据库。")
+    rootCmd.Flags().StringVarP(&cfgPath, "config", "c", "", "指定配置文件路径。")
     rootCmd.Flags().StringVarP(&out, "out", "o", "", "指定输出目录。")
     rootCmd.Flags().StringVarP(&goPkg, "go-pkg", "g", "", "指定 Go 包名。")
     rootCmd.Flags().StringVarP(&outPkg, "out-pkg", "p", "tables", "指定输出 Go 包名。")
@@ -39,12 +42,22 @@ func init() {
     cobra.CheckErr(rootCmd.MarkFlagRequired("go-pkg"))
 }
 
+type Config struct {
+    Ignores []*IgnoreTable `yaml:"ignores"`
+}
+
+type IgnoreTable struct {
+    Table   string   `yaml:"table"`
+    Columns []string `yaml:"columns"`
+}
+
 var (
-    server string
-    db     string
-    out    string
-    goPkg  string
-    outPkg string
+    server  string
+    db      string
+    cfgPath string
+    out     string
+    goPkg   string
+    outPkg  string
 
     ch chan struct{}
     wg sync.WaitGroup
@@ -68,11 +81,35 @@ var (
                 glog.Fatal(gerror.Wrapf(err, "template.New Failed"))
             }
 
+            // Load Ignore Config
+            icMap := make(map[string]*IgnoreTable, 50)
+            icMap["base_json"] = &IgnoreTable{
+                Table: "base_json",
+            }
+            icMap["base_json_proto"] = &IgnoreTable{
+                Table: "base_json_proto",
+            }
+            if cfgPath != "" {
+                var ic *Config
+                bytes, err := os.ReadFile(cfgPath)
+                if err != nil {
+                    glog.Fatal(gerror.Wrapf(err, "ReadFile Failed"))
+                }
+                err = yaml.Unmarshal(bytes, &ic)
+                if err != nil {
+                    glog.Fatal(gerror.Wrapf(err, "yaml.Unmarshal Failed"))
+                }
+
+                for _, vv := range ic.Ignores {
+                    icMap[vv.Table] = vv
+                }
+            }
+
             ch = make(chan struct{}, 10)
             for _, table := range mtDB.GetTables() {
-                c1 := !strings.HasPrefix(table.TableName, "base_")
-                c2 := strings.HasPrefix(table.TableName, "base_json")
-                if c1 || c2 {
+                ok1 := !strings.HasPrefix(table.TableName, "base_")
+                _, ok2 := icMap[table.TableName]
+                if ok1 || ok2 {
                     continue
                 }
                 ch <- struct{}{}
