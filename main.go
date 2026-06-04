@@ -7,7 +7,7 @@ import (
     "github.com/camry/g/v2/glog"
     "github.com/dromara/carbon/v2"
 
-    "mt-cli/cmd"
+    "gitea.meigushi.go/meigushi/mt-cli/cmd"
 )
 
 func main() {

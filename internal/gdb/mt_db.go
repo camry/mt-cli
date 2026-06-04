@@ -11,8 +11,8 @@ import (
     "gorm.io/gorm"
     "gorm.io/gorm/logger"
 
-    "mt-cli/internal/def"
-    "mt-cli/internal/model"
+    "gitea.meigushi.go/meigushi/mt-cli/internal/def"
+    "gitea.meigushi.go/meigushi/mt-cli/internal/model"
 )
 
 type MtDB struct {

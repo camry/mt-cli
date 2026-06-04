@@ -11,8 +11,8 @@ import (
     "github.com/camry/g/v2/gerrors/gerror"
     "github.com/samber/lo"
 
-    "mt-cli/internal/gdb"
-    "mt-cli/internal/model"
+    "gitea.meigushi.go/meigushi/mt-cli/internal/gdb"
+    "gitea.meigushi.go/meigushi/mt-cli/internal/model"
 )
 
 type Table struct {
