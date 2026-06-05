@@ -101,6 +101,9 @@ var (
                 }
 
                 for _, vv := range ic.Ignores {
+                    if len(vv.Columns) > 0 {
+                        continue
+                    }
                     icMap[vv.Table] = vv
                 }
             }
