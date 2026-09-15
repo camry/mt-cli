@@ -19,9 +19,7 @@ import (
 {{- $TableNameCamelCase := .TableNameCamelCase }}
 {{- $TableIndexFuncNameLen := .TableIndexFuncNameLen }}
 
-var {{ .TableNamePascalCase }}Manager = &{{ .TableNameCamelCase }}Manager{
-    tableCache: gcache.New({{ .TableRows }}).ARC().Build(),
-}
+var {{ .TableNamePascalCase }}Manager = &{{ .TableNameCamelCase }}Manager{}
 
 func init() {
     mt.Register({{ .TableNamePascalCase }}Manager)
@@ -56,6 +54,7 @@ type {{ .TableNameCamelCase }}Index struct {
 
 type {{ .TableNameCamelCase }}Manager struct {
     tableCrc   uint32
+    tableSize  int64
     tableMeta  atomic.Pointer[{{ .PbPackage }}.{{ .TableNamePascalCase }}List]
     tableIndex atomic.Pointer[{{ .TableNameCamelCase }}Index]
     tableCache gcache.Cache
@@ -106,6 +105,10 @@ func (x *{{ .TableNameCamelCase }}Manager) TableCrc() uint32 {
     return x.tableCrc
 }
 
+func (x *{{ .TableNameCamelCase }}Manager) TableSize() int64 {
+    return x.tableSize
+}
+
 func (x *{{ .TableNameCamelCase }}Manager) Load(tableCrc uint32, tableData []byte) error {
     m := &{{ .PbPackage }}.{{ .TableNamePascalCase }}List{}
     err := proto.Unmarshal(tableData, m)
@@ -113,8 +116,10 @@ func (x *{{ .TableNameCamelCase }}Manager) Load(tableCrc uint32, tableData []byt
         return gerror.Wrapf(err, "{{ .TableNameCamelCase }}Manager Load Unmarshal Failed")
     }
     x.tableCrc = tableCrc
+    x.tableSize = int64(m.GetItems())
     x.tableMeta.Store(m)
     x.tableIndex.Store(x.build{{ $TableNamePascalCase }}Index(m.GetItems()))
+    x.tableCache = gcache.New(max(int(x.tableSize/20), 1)).ARC().Build()
     return nil
 }
 
@@ -125,9 +130,11 @@ func (x *{{ .TableNameCamelCase }}Manager) Watch(tableCrc uint32, tableData []by
         return gerror.Wrapf(err, "{{ .TableNameCamelCase }}Manager Watch Unmarshal Failed")
     }
     x.tableCrc = tableCrc
+    x.tableSize = int64(m.GetItems())
     x.tableCache.Purge()
     x.tableMeta.Swap(m)
     x.tableIndex.Swap(x.build{{ $TableNamePascalCase }}Index(m.GetItems()))
+    x.tableCache = gcache.New(max(int(x.tableSize/20), 1)).ARC().Build()
     return nil
 }
 

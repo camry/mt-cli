@@ -86,7 +86,6 @@ func (x *Table) Generate() error {
     tableStatisticGroupIndexNames := lo.Keys(tableStatisticGroup)
     sort.Strings(tableStatisticGroupIndexNames)
     templateTable.TableIndexList = make([]*model.TemplateTableIndex, 0, len(tableStatisticGroup))
-    var indexTableRows int64
     for _, tableStatisticGroupIndexName := range tableStatisticGroupIndexNames {
         indexTableStatisticList := tableStatisticGroup[tableStatisticGroupIndexName]
         templateTableIndex := &model.TemplateTableIndex{
@@ -114,10 +113,8 @@ func (x *Table) Generate() error {
         }
         templateTableIndex.FuncName = strings.Join(pascalCaseColumnNames, "And")
         if isUnique {
-            indexTableRows += tableRows
             templateTableIndex.FuncName = "GetBy" + templateTableIndex.FuncName
         } else {
-            indexTableRows += tableRows/20 + 1
             templateTableIndex.FuncName = "ListBy" + templateTableIndex.FuncName
         }
         templateTableIndex.FuncNameCamelCase = lo.CamelCase(templateTableIndex.FuncName)
@@ -157,7 +154,7 @@ func (x *Table) Generate() error {
         templateTableIndex.ForIf = strings.Join(ifColumns, " && ")
         templateTable.TableIndexList = append(templateTable.TableIndexList, templateTableIndex)
     }
-    templateTable.TableRows = lo.Max([]int64{indexTableRows, 1})
+    templateTable.TableRows = tableRows
 
     var wr bytes.Buffer
     err = x.tpl.Execute(&wr, templateTable)
