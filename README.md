@@ -6,5 +6,5 @@
 
 ```bash
 rm -f ../mt/tables/*
-mt-cli --server dev:Zqa5Q5pYgvmT@192.168.110.112:3306 --db treasure_base --go-pkg gitlab.walrus.cs/treasure/treasure-pb/sbpb --out ../mt/tables
+mt-cli --server wild:skUbPzoif4K9uA3n@127.0.0.1:13306 --db wild_base --config ../../ola/wild-proto/sbpb/ignore.yaml --go-pkg github.com/olaola-chat/wild-pb/sbpb --out ../../ola/wild-core/mb --out-pkg mb
 ```

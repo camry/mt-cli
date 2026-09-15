@@ -120,17 +120,40 @@ func (x *Table) Generate() error {
             indexTableRows += tableRows/20 + 1
             templateTableIndex.FuncName = "ListBy" + templateTableIndex.FuncName
         }
+        templateTableIndex.FuncNameCamelCase = lo.CamelCase(templateTableIndex.FuncName)
+        templateTable.TableIndexFuncNameLen = lo.Max([]int{templateTable.TableIndexFuncNameLen, len(templateTableIndex.FuncName)})
         templateTableIndex.IsUnique = isUnique
         columnArgs := make([]string, 0, len(templateTableIndex.Columns))
+        columnArgNames := make([]string, 0, len(templateTableIndex.Columns))
+        columnKeyFs := make([]string, 0, len(templateTableIndex.Columns))
         columnKeyArgs := make([]string, 0, len(templateTableIndex.Columns))
         ifColumns := make([]string, 0, len(templateTableIndex.Columns))
         for _, tableColumn := range templateTableIndex.Columns {
+            templateTableIndex.ColumnLenMax = lo.Max([]int{templateTableIndex.ColumnLenMax, len(tableColumn.CamelCaseColumnName)})
             columnArgs = append(columnArgs, fmt.Sprintf("%s %s", tableColumn.CamelCaseColumnName, tableColumn.DataType))
+            columnArgNames = append(columnArgNames, tableColumn.CamelCaseColumnName)
+
+            switch tableColumn.DataType {
+            case "int32", "int64":
+                columnKeyFs = append(columnKeyFs, tableColumn.PascalCaseColumnName+"=%d")
+            case "float", "double":
+                columnKeyFs = append(columnKeyFs, tableColumn.PascalCaseColumnName+"=%.4f")
+            case "bool":
+                columnKeyFs = append(columnKeyFs, tableColumn.PascalCaseColumnName+"=%t")
+            case "string":
+                columnKeyFs = append(columnKeyFs, tableColumn.PascalCaseColumnName+"=%s")
+            default:
+                columnKeyFs = append(columnKeyFs, tableColumn.PascalCaseColumnName+"=%v")
+            }
+
             columnKeyArgs = append(columnKeyArgs, tableColumn.CamelCaseColumnName)
             ifColumns = append(ifColumns, fmt.Sprintf("%s.Get%s() == %s", templateTable.TableNameCamelCase, tableColumn.PascalCaseColumnName, tableColumn.CamelCaseColumnName))
         }
         templateTableIndex.FuncArg = strings.Join(columnArgs, ", ")
-        templateTableIndex.CacheKeyArg = strings.Join(columnKeyArgs, ", ")
+        templateTableIndex.FuncArgName = strings.Join(columnArgNames, ", ")
+        templateTableIndex.FuncArgLen = len(templateTableIndex.Columns)
+        templateTableIndex.FuncKeyF = strings.Join(columnKeyFs, ", ")
+        templateTableIndex.FuncKeyArg = strings.Join(columnKeyArgs, ", ")
         templateTableIndex.ForIf = strings.Join(ifColumns, " && ")
         templateTable.TableIndexList = append(templateTable.TableIndexList, templateTableIndex)
     }

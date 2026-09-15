@@ -89,6 +89,9 @@ var (
             icMap["base_json_proto"] = &IgnoreTable{
                 Table: "base_json_proto",
             }
+            icMap["base_json_proto_column"] = &IgnoreTable{
+                Table: "base_json_proto_column",
+            }
             if cfgPath != "" {
                 var ic *Config
                 bytes, err := os.ReadFile(cfgPath)

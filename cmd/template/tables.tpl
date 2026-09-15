@@ -17,6 +17,7 @@ import (
 {{- $PbPackage := .PbPackage }}
 {{- $TableNamePascalCase := .TableNamePascalCase }}
 {{- $TableNameCamelCase := .TableNameCamelCase }}
+{{- $TableIndexFuncNameLen := .TableIndexFuncNameLen }}
 
 var {{ .TableNamePascalCase }}Manager = &{{ .TableNameCamelCase }}Manager{
     tableCache: gcache.New({{ .TableRows }}).ARC().Build(),
@@ -26,10 +27,75 @@ func init() {
     mt.Register({{ .TableNamePascalCase }}Manager)
 }
 
+{{- range .TableIndexList }}
+{{- if and (eq .IsUnique true) (gt .FuncArgLen 1) }}
+
+type {{ $TableNameCamelCase }}{{ .FuncName }}Key struct {
+    {{- $ColumnLenMax := .ColumnLenMax }}
+    {{- range .Columns }}
+    {{ printf "%-*s" $ColumnLenMax .CamelCaseColumnName }} {{ .DataType }}
+    {{- end }}
+}
+{{- end }}
+{{- end }}
+
+type {{ .TableNameCamelCase }}Index struct {
+    {{- range .TableIndexList }}
+    {{- $FuncNameCamelCase := .FuncNameCamelCase }}
+    {{- if eq .IsUnique true }}
+    {{- if gt .FuncArgLen 1 }}
+    {{ printf "%-*s" $TableIndexFuncNameLen $FuncNameCamelCase }} map[{{ $TableNameCamelCase }}{{ .FuncName }}Key]*{{ $PbPackage }}.{{ $TableNamePascalCase }}
+    {{- else }}
+    {{- range .Columns }}
+    {{ printf "%-*s" $TableIndexFuncNameLen $FuncNameCamelCase }} map[{{ .DataType }}]*{{ $PbPackage }}.{{ $TableNamePascalCase }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+    {{- end }}
+}
+
 type {{ .TableNameCamelCase }}Manager struct {
     tableCrc   uint32
     tableMeta  atomic.Pointer[{{ .PbPackage }}.{{ .TableNamePascalCase }}List]
+    tableIndex atomic.Pointer[{{ .TableNameCamelCase }}Index]
     tableCache gcache.Cache
+}
+
+func (x *{{ .TableNameCamelCase }}Manager) build{{ $TableNamePascalCase }}Index(items []*{{ $PbPackage }}.{{ $TableNamePascalCase }}) *{{ .TableNameCamelCase }}Index {
+    itemsLen := len(items)
+    idx := &{{ .TableNameCamelCase }}Index{
+        {{- range .TableIndexList }}
+        {{- $FuncNameCamelCase := .FuncNameCamelCase }}
+        {{- if eq .IsUnique true }}
+        {{- if gt .FuncArgLen 1 }}
+        {{ printf "%-*s" $TableIndexFuncNameLen $FuncNameCamelCase }}: make(map[{{ $TableNameCamelCase }}{{ .FuncName }}Key]*{{ $PbPackage }}.{{ $TableNamePascalCase }}, itemsLen),
+        {{- else }}
+        {{- range .Columns }}
+        {{ printf "%-*s" $TableIndexFuncNameLen $FuncNameCamelCase }}: make(map[{{ .DataType }}]*{{ $PbPackage }}.{{ $TableNamePascalCase }}, itemsLen),
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    }
+    for _, item := range items {
+        {{- range .TableIndexList }}
+        {{- $FuncNameCamelCase := .FuncNameCamelCase }}
+        {{- if eq .IsUnique true }}
+        {{- if gt .FuncArgLen 1 }}
+        idx.{{ $FuncNameCamelCase }}[{{ $TableNameCamelCase }}{{ .FuncName }}Key{
+        {{- range .Columns }}
+            {{ .CamelCaseColumnName }}: item.Get{{ .PascalCaseColumnName }}(),
+        {{- end }}
+        }] = item
+        {{- else }}
+        {{- range .Columns }}
+        idx.{{ $FuncNameCamelCase }}[item.Get{{ .PascalCaseColumnName }}()] = item
+        {{- end }}
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    }
+    return idx
 }
 
 func (x *{{ .TableNameCamelCase }}Manager) TableName() string {
@@ -48,6 +114,7 @@ func (x *{{ .TableNameCamelCase }}Manager) Load(tableCrc uint32, tableData []byt
     }
     x.tableCrc = tableCrc
     x.tableMeta.Store(m)
+    x.tableIndex.Store(x.build{{ $TableNamePascalCase }}Index(m.GetItems()))
     return nil
 }
 
@@ -60,6 +127,7 @@ func (x *{{ .TableNameCamelCase }}Manager) Watch(tableCrc uint32, tableData []by
     x.tableCrc = tableCrc
     x.tableCache.Purge()
     x.tableMeta.Swap(m)
+    x.tableIndex.Swap(x.build{{ $TableNamePascalCase }}Index(m.GetItems()))
     return nil
 }
 
@@ -75,29 +143,37 @@ func (x *{{ .TableNameCamelCase }}Manager) ForEach(fn func(index int, {{ .TableN
 }
 {{ range .TableIndexList }}
 func (x *{{ $TableNameCamelCase }}Manager) {{ .FuncName }}({{ .FuncArg }}) ({{ if ne .IsUnique true }}[]{{ end }}*{{ $PbPackage }}.{{ $TableNamePascalCase }}, error) {
-    k := mt.TableCacheKey(x, "{{ .FuncName }}", {{ .CacheKeyArg }})
+    {{- if eq .IsUnique true}}
+    if idx := x.tableIndex.Load(); idx != nil {
+        {{- $FuncNameCamelCase := .FuncNameCamelCase }}
+        {{- $FuncArgName := .FuncArgName }}
+        {{- if eq .IsUnique true }}
+        {{- if gt .FuncArgLen 1 }}
+        if v, ok := idx.{{ $FuncNameCamelCase }}[{{ $TableNameCamelCase }}{{ .FuncName }}Key{ {{ $FuncArgName }} }]; ok {
+            return v, nil
+        }
+        {{- else }}
+        {{- range .Columns }}
+        if v, ok := idx.{{ $FuncNameCamelCase }}[{{ $FuncArgName }}]; ok {
+            return v, nil
+        }
+        {{- end }}
+        {{- end }}
+        {{- end }}
+    }
+    {{- else }}
+    k := mt.TableCacheKey(x, "{{ .FuncName }}", {{ .FuncKeyArg }})
     if v, err := x.tableCache.Get(k); err == nil {
-        return v.({{ if ne .IsUnique true }}[]{{ end }}*{{ $PbPackage }}.{{ $TableNamePascalCase }}), nil
+        return v.([]*{{ $PbPackage }}.{{ $TableNamePascalCase }}), nil
     }
     m := x.List()
     items := m.GetItems()
-    {{- if ne .IsUnique true}}
     {{ $TableNameCamelCase }}List := make([]*{{ $PbPackage }}.{{ $TableNamePascalCase }}, 0, len(items))
-    {{- end }}
     for _, {{ $TableNameCamelCase }} := range items {
         if {{ .ForIf }} {
-            {{- if ne .IsUnique true }}
             {{ $TableNameCamelCase }}List = append({{ $TableNameCamelCase }}List, {{ $TableNameCamelCase }})
-            {{- else }}
-            err := x.tableCache.Set(k, {{ $TableNameCamelCase }})
-            if err != nil {
-                return nil, gerror.Wrapf(err, "{{ $TableNameCamelCase }}Manager {{ .FuncName }} Set Cache Failed")
-            }
-            return {{ $TableNameCamelCase }}, nil
-            {{- end }}
         }
     }
-    {{- if ne .IsUnique true }}
     if len({{ $TableNameCamelCase }}List) > 0 {
         err := x.tableCache.Set(k, {{ $TableNameCamelCase }}List)
         if err != nil {
@@ -106,6 +182,6 @@ func (x *{{ $TableNameCamelCase }}Manager) {{ .FuncName }}({{ .FuncArg }}) ({{ i
         return {{ $TableNameCamelCase }}List, nil
     }
     {{- end }}
-    return nil, gerror.NewCodef(gcode.CodeMissingConfiguration, "{{ $TableNameCamelCase }}Manager {{ .FuncName }} %s Not Exist", k)
+    return nil, gerror.NewCodef(gcode.CodeMissingConfiguration, "{{ $TableNameCamelCase }}Manager {{ .FuncName }} {{ .FuncKeyF }} Not Exist", {{ .FuncKeyArg }})
 }
 {{ end }}
