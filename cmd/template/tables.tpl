@@ -116,7 +116,7 @@ func (x *{{ .TableNameCamelCase }}Manager) Load(tableCrc uint32, tableData []byt
         return gerror.Wrapf(err, "{{ .TableNameCamelCase }}Manager Load Unmarshal Failed")
     }
     x.tableCrc = tableCrc
-    x.tableSize = int64(m.GetItems())
+    x.tableSize = int64(len(m.GetItems()))
     x.tableMeta.Store(m)
     x.tableIndex.Store(x.build{{ $TableNamePascalCase }}Index(m.GetItems()))
     x.tableCache = gcache.New(max(int(x.tableSize/20), 1)).ARC().Build()
@@ -130,7 +130,7 @@ func (x *{{ .TableNameCamelCase }}Manager) Watch(tableCrc uint32, tableData []by
         return gerror.Wrapf(err, "{{ .TableNameCamelCase }}Manager Watch Unmarshal Failed")
     }
     x.tableCrc = tableCrc
-    x.tableSize = int64(m.GetItems())
+    x.tableSize = int64(len(m.GetItems()))
     x.tableCache.Purge()
     x.tableMeta.Swap(m)
     x.tableIndex.Swap(x.build{{ $TableNamePascalCase }}Index(m.GetItems()))
