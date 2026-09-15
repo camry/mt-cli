@@ -41,13 +41,13 @@ func (x *{{ .TableNameCamelCase }}Manager) TableCrc() uint32 {
 }
 
 func (x *{{ .TableNameCamelCase }}Manager) Load(tableCrc uint32, tableData []byte) error {
-    m := {{ .PbPackage }}.{{ .TableNamePascalCase }}List{}
-    err := proto.Unmarshal(tableData, &m)
+    m := &{{ .PbPackage }}.{{ .TableNamePascalCase }}List{}
+    err := proto.Unmarshal(tableData, m)
     if err != nil {
         return gerror.Wrapf(err, "{{ .TableNameCamelCase }}Manager Load Unmarshal Failed")
     }
     x.tableCrc = tableCrc
-    x.tableMeta.Store(&m)
+    x.tableMeta.Store(m)
     return nil
 }
 
@@ -80,10 +80,11 @@ func (x *{{ $TableNameCamelCase }}Manager) {{ .FuncName }}({{ .FuncArg }}) ({{ i
         return v.({{ if ne .IsUnique true }}[]{{ end }}*{{ $PbPackage }}.{{ $TableNamePascalCase }}), nil
     }
     m := x.List()
+    items := m.GetItems()
     {{- if ne .IsUnique true}}
-    {{ $TableNameCamelCase }}List := make([]*{{ $PbPackage }}.{{ $TableNamePascalCase }}, 0, len(m.GetItems()))
+    {{ $TableNameCamelCase }}List := make([]*{{ $PbPackage }}.{{ $TableNamePascalCase }}, 0, len(items))
     {{- end }}
-    for _, {{ $TableNameCamelCase }} := range m.GetItems() {
+    for _, {{ $TableNameCamelCase }} := range items {
         if {{ .ForIf }} {
             {{- if ne .IsUnique true }}
             {{ $TableNameCamelCase }}List = append({{ $TableNameCamelCase }}List, {{ $TableNameCamelCase }})
