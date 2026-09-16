@@ -19,6 +19,7 @@ import (
 {{- $TableNameCamelCase := .TableNameCamelCase }}
 {{- $TableIndexFuncNameLen := .TableIndexFuncNameLen }}
 
+// {{ .TableComment }}管理器。
 var {{ .TableNamePascalCase }}Manager = &{{ .TableNameCamelCase }}Manager{}
 
 func init() {

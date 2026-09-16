@@ -45,6 +45,7 @@ func (x *Table) Generate() error {
         TableName:           x.modelTable.TableName,
         TableNamePascalCase: lo.PascalCase(x.modelTable.TableName),
         TableNameCamelCase:  lo.CamelCase(x.modelTable.TableName),
+        TableComment:        x.modelTable.TableComment,
     }
 
     var (

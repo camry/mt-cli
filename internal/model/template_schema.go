@@ -7,6 +7,7 @@ type TemplateTable struct {
     TableName             string
     TableNamePascalCase   string
     TableNameCamelCase    string
+    TableComment          string
     TableRows             int64
     TableIndexList        []*TemplateTableIndex
     TableIndexFuncNameLen int
