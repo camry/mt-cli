@@ -143,10 +143,12 @@ func (x *{{ .TableNameCamelCase }}Manager) List() *{{ .PbPackage }}.{{ .TableNam
     return x.tableMeta.Load()
 }
 
-func (x *{{ .TableNameCamelCase }}Manager) ForEach(fn func(index int, {{ .TableNameCamelCase }} *{{ .PbPackage }}.{{ .TableNamePascalCase }})) {
+func (x *{{ .TableNameCamelCase }}Manager) Range(fn func(index int, {{ .TableNameCamelCase }} *{{ .PbPackage }}.{{ .TableNamePascalCase }}) bool) {
     m := x.List()
     for index, {{ .TableNameCamelCase }} := range m.GetItems() {
-        fn(index, {{ .TableNameCamelCase }})
+        if !fn(index, {{ .TableNameCamelCase }}) {
+            break
+        }
     }
 }
 {{ range .TableIndexList }}
