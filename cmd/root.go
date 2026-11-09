@@ -13,8 +13,8 @@ import (
     "github.com/spf13/cobra"
     "gopkg.in/yaml.v3"
 
-    "gitea.meigushi.go/meigushi/mt-cli/internal/gdb"
-    "gitea.meigushi.go/meigushi/mt-cli/internal/gen"
+    "github.com/camry/mt-cli/internal/gdb"
+    "github.com/camry/mt-cli/internal/gen"
 )
 
 var (

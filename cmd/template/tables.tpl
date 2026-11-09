@@ -8,10 +8,9 @@ import (
     "github.com/bluele/gcache"
     {{ with .TableIndexList }}"github.com/camry/g/v2/gerrors/gcode"{{ end }}
     "github.com/camry/g/v2/gerrors/gerror"
+    "github.com/camry/mt"
     {{ if ne .GoPackage "" }}"{{ .GoPackage }}"{{ end }}
     "google.golang.org/protobuf/proto"
-
-    "gitea.meigushi.go/meigushi/mt"
 )
 
 {{- $PbPackage := .PbPackage }}
